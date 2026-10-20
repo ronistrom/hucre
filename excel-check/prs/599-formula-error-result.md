@@ -48,6 +48,8 @@ The round-trip test in `formula-result-types.test.ts` (from #497) only checked t
 
 Tests: three of the five new tests fail against `main`: the read case, the read → write round trip, and the authored `{ formulaResultType: "error" }` write. The tightened #497 round-trip assertion fails too. The other two new tests pass on `main`: one checks that no other result type gets the field, the other that a non-string result ignores it. Adding the field to `FULL_CELL` also makes six `clone-sheet-coverage` tests fail at runtime on `main`, because `cloneCell` and the worker drop the field. With the field in the type, `tsc` would reject the fixture there as well. On Node 24.22.0, lint, format check and both typechecks pass. The full vitest run had 10,701 of 10,703 tests passing across 240 files. The two failures were timeouts in `html-import.test.ts` and `real-world.test.ts` while the machine was heavily loaded (load average around 29). The first run hit a similar timeout in `property-roundtrip.test.ts`. All three files pass when run alone (71 tests).
 
+After review: a cell a shared formula covers (`<f t="shared" si="0"/>`, read as `formula: ""`) lost its cached error, because the error arm tested `formula` for truthiness. It now tests `!== undefined`. Two more tests cover the read and the rewrite; both fail without that commit. `bun run test` passes, with 240 files and 10,705 tests.
+
 ### Checked in Excel
 
 In Excel for Mac.
