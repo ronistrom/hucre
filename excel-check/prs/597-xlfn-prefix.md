@@ -73,6 +73,13 @@ Tests: `test/formula-future-prefix.test.ts` adds 23 tests.
 
 `bun run test` passes, with 241 files and 10,721 tests.
 
+After review, a third commit adds ten functions that Excel 16.114 for Mac saved with `_xlfn.` when typed in bare, though neither [MS-XLSX] nor XlsxWriter lists them yet: DETECTLANGUAGE, GROUPBY, PERCENTOF, PIVOTBY, REGEXEXTRACT, REGEXREPLACE, REGEXTEST, STOCKHISTORY, TRANSLATE and TRIMRANGE. A file written with five of them opens cleanly and computes.
+
+- **ENCODEURL is left out.** Neither source lists it, and Excel for Mac, which doesn't have the function, saves it bare.
+- **One prefix is still missing.** A function passed as an argument, as in `GROUPBY(A2:A3,B2:B3,SUM)`, is stored as `_xleta.SUM`. Written bare, Excel computes `#NAME?`; with `_xleta.SUM` hand-edited in, it computes. Adding it needs Excel's whole function list, to tell such a name apart from a defined name. PARITY.md says so and points to a LAMBDA instead (`LAMBDA(x,SUM(x))`), which is written in its stored form.
+
+The new test fails without that commit. `bun run test` passes, with 241 files and 10,723 tests.
+
 ### Checked in Excel
 
 In Excel for Mac.
