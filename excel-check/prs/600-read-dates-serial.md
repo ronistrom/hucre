@@ -57,8 +57,19 @@ Tests: 18 of the 25 new tests in `test/read-dates-serial.test.ts` fail against `
 
 `bun run test` passes on Node 24.22.0 (241 files, 10,724 tests), and so does `TZ=Asia/Tokyo bun run test` (same counts).
 
+### Checked with a file Excel wrote
+
+This change only affects reading, so there is no output to open. Instead I saved a workbook from Excel for Mac and read it with `main` and with this branch. It had A3 `15.1.2024 12:00` formatted as a date and time, B3 `6:30` formatted `hh:mm`, and C3 the number `60` formatted as a date.
+
+- **Default read:** unchanged on both. A3, B3 and C3 come back as `Date`s, with C3 as `1900-02-28`.
+- **`dates: "serial"`:**
+  - `main` ignores the option.
+  - This branch returns A3 `45306.5`, B3 `0.2708333333333333` and C3 exactly `60`, the serials Excel stored.
+
+The `.xls`/`.xlsb`/`.xlsx` expectations in the tests come from the Excel-written fixtures in `test/fixtures` (#464), with the serials counted by hand from `scripts/fixtures/make-fixtures.vbs`.
+
 ### Not verified
 
-- I did not open any output in Excel or LibreOffice. This change only affects reading, and the `.xls`/`.xlsb`/`.xlsx` expectations come from the Excel-written fixtures in `test/fixtures` (#464), with the serials counted by hand from `scripts/fixtures/make-fixtures.vbs`.
+- Only the `.xlsx` reader was checked against a file saved in this session. `.xls` and `.xlsb` rely on the existing fixtures.
 - `readXls` and `readXlsb` don't set `Workbook.dateSystem`. In serial mode, a caller reading a 1904 `.xls`/`.xlsb` therefore can't tell from the result which epoch the numbers count from. `readXlsx` does report it. That gap predates this PR and is left for a follow-up.
 - There is no CLI flag for the option.

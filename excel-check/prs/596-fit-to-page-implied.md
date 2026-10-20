@@ -46,6 +46,16 @@ Every fit-to-page test in `print-settings.test.ts`, `real-world.test.ts`, `xlsx-
 
 Tests: three of the four new tests in `print-settings.test.ts` fail against `main`: counts only, `fitToHeight` only, and the round trip through `readXlsx`. The fourth checks that `fitToPage: false` with counts writes nothing, which already worked and is there to stop the implication from overriding an explicit `false`. `bun run test` passes on Node 24.22.0, with 240 files and 10,702 tests.
 
+### Checked in Excel
+
+In Excel for Mac, with a 20-column sheet written by `main` and by this branch. Both files open without a repair prompt.
+
+- **After:** Excel's page setup reports fit to 1 page wide with height automatic. The Page Layout tab shows Width "1 page" and Height "Automatic".
+- **Before:** scaling is 100%.
+
+The XML matches what the existing `fitToPage: true` path already writes, so this change only makes that path reachable without the flag.
+
 ### Not verified
 
-I did not open the output in Excel or LibreOffice. The XML matches what the existing `fitToPage: true` path already writes, so this change only makes that path reachable without the flag.
+- **Print preview.** I checked the page setup, not that all 20 columns actually land on one page width.
+- **LibreOffice and Windows Excel.** Not opened.

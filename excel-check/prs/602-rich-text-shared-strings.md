@@ -47,6 +47,11 @@ Several tests asserted the inline form for the default mode, so they pinned the 
 
 Tests: a new `test/rich-text-shared-strings.test.ts` with seven tests. Five of them fail against `main`: shared `<si>` plus `t="s"`, the style index, dedup apart from plain text, the shared string part being written when rich text is the only text, and `saveXlsx`. The other two passed already: the read-back round trip, and the exact inline output. The four updated assertions in the existing tests also fail against `main`, nine failures in total. `bun run test` passes on Node 24.22.0, with 241 files and 10,705 tests.
 
+### Checked in Excel
+
+In Excel for Mac, with A1 as "**Bold red** then normal" and A2 as plain text, written by `main` and by this branch. Both files open without a repair prompt and look the same: the first run is bold and red, the rest is plain. In the after file the rich text is in `sharedStrings.xml` as an `<si>` with two `<r>` runs, and A1 is `t="s"`. In the before file it is an inline `<is>`. So Excel reads the new form as it reads the old one.
+
 ### Not verified
 
-I did not open the output in Excel or LibreOffice. There's no Excel or LibreOffice here. The `<si>` with `<r>` runs is the form the spec defines and Excel writes, and hucre's own reader reads it back, but I haven't checked it in either application.
+- **LibreOffice and Windows Excel.** Not opened.
+- **The tools this is for.** Template engines and find/replace tools that only read the shared string table were not tried.

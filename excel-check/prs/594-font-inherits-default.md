@@ -35,8 +35,13 @@ No test wrote a partial font next to a `defaultFont` and looked at the `<font>` 
 
 Tests: `test/font-inherits-default.test.ts` adds 9 tests, and 7 of them fail against `main`. The 2 that pass on `main` are guards: the conditional formatting font stays unmerged, and the caller's style object is not mutated. The changed parity expectation also fails without the fix. `bun run test` passes on Node 24.22.0, with 241 files and 10,707 tests.
 
+### Checked in Excel
+
+In Excel for Mac, with the issue's case written by `main` and by this branch. Both files open without a repair prompt. In both, Excel reports A1 as Arial 10, bold, dark blue. Excel fills a font's missing `name` and `size` from font 0 itself, so the bug does not show in Excel. The difference shows in apps that don't fill the gap that way.
+
 ### Not verified
 
-I did not open the output in Excel or LibreOffice, because neither is available here. The before/after above is the XML the writer produces and what `readXlsx` returns. The claim about how LibreOffice renders the old output comes from the issue.
+- **LibreOffice.** Not opened. The claim that it draws the old output's bold cell in Cambria 11pt comes from the issue.
+- **Windows Excel.** Only Excel for Mac was checked.
 
 Open question: rich text runs have the same problem. A run font without `name`/`size` is written as given. I left that out of this PR.

@@ -62,6 +62,16 @@ Not in this PR: text boxes and charts still invent a `to` when it is absent (+3/
 
 README and `docs/PARITY.md` never described the 3 × 5 default, so they don't need changes.
 
+### Checked in Excel
+
+In Excel for Mac, with a 200 × 40 px image anchored at B2 with no `to`, written by `main` and by this branch. Both files open without a repair prompt. Size and placement are as Excel itself reports them:
+
+- **Before:** 159 × 75 pt, from B2 over the invented 3 × 5 cell box, set to "move and size with cells". The `a:ext` size was ignored, as the issue says.
+- **After:** 150 × 30 pt at B2. That is 200 × 40 px at 96 dpi, or 5.29 × 1.06 cm. It is set to "move but don't size with cells".
+
+So Excel sizes a `oneCellAnchor` picture from `xdr:ext`.
+
 ### Not verified
 
-I did not open the output in Excel or LibreOffice. The claim that both apps size a `oneCellAnchor` picture from `xdr:ext` and ignore `a:ext` under a `twoCellAnchor` comes from the issue and the schema, not from checking it myself.
+- **LibreOffice.** Not opened. The claim that it behaves the same way comes from the issue and the schema.
+- **Windows Excel.** Only Excel for Mac was checked.

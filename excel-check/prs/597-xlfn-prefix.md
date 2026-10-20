@@ -55,10 +55,20 @@ The tests compared the writer's output with what they had passed in, so they che
   - The usual contents (`Sheet1!$A$1:$B$5`, print areas, quoted sheet names) have no call in them, so they pass through unchanged.
   - The table writer has no calculated-column formula, only `totalsRowFormula`, which gets the same treatment for the same reason.
 - Read-back changes. The reader keeps formula text as the file has it, so a formula written as `XLOOKUP(…)` now reads back as `_xlfn.XLOOKUP(…)`. It's the same formula, but a strict equality check on a round trip will see the difference. Writing the read-back text again does not prefix it twice. `docs/PARITY.md`, the `Cell.formula` doc and the `NamedRange.range` doc now say so.
-- Out of scope: `_xlpm.` on LET and LAMBDA parameter names. Adding it means knowing which names a `LET` binds, and a scan for `NAME(` can't tell that. PARITY.md says hucre writes those names as given.
+- Out of scope: `_xlpm.` on LET and LAMBDA parameter names. Adding it means knowing which names a `LET` binds, and a scan for `NAME(` can't tell that. PARITY.md says hucre writes those names as given. In Excel this matters more than it sounds: a LAMBDA or LET without `_xlpm.` is still removed on open (see "Checked in Excel").
 
 Tests: `test/formula-future-prefix.test.ts` adds 16 tests. 13 of them fail against `main`. The other three pass on `main` because they check what must not change: future functions the spec stores bare, already-prefixed formulas, and names that aren't calls. The three corrected assertions in `formulas-advanced.test.ts` fail against `main` too, which makes 16 failures in total. `bun run test` passes on Node 24.22.0, with 241 files and 10,714 tests.
 
+### Checked in Excel
+
+In Excel for Mac.
+
+- **The issue's five formulas.** The file `main` writes is worse than `#NAME?`. Excel asks to repair it, and its repair log says it removed formulas from `sheet1.xml`. After the repair, D1–D3 show `#NAME?`, and D4 and D5 (FILTER, SORT) are empty. This branch's file opens without a prompt and shows D1 `2`, D2 `small`, D3 `a,b,c`, D4 `b` and D5 `a`. FILTER and SORT show only their first value because no dynamic-array metadata is written; that is separate from this PR.
+- **Defined names.** Names holding `XLOOKUP(…)` and `TEXTJOIN(…)`, written by this branch, work: cells `=Lookup` and `=Joined` show `2` and `a,b,c`.
+- **LAMBDA and LET still fail, because of the missing `_xlpm.`.** I wrote a defined name `Double` as `LAMBDA(x,x*2)` and a cell `LET(x,2,x*3)`. This branch writes `_xlfn.LAMBDA(x,x*2)` and `_xlfn.LET(x,2,x*3)`. Excel asks to repair the file, removes the named range and the formula, and `=Double(B2)` shows `#NAME?`. The same file with `_xlpm.x` hand-edited into both opens cleanly and computes `2` and `6`. So the prefix this PR adds is necessary but not enough for a named LAMBDA or a LET: those need `_xlpm.` as well. That is a follow-up, not something this PR makes worse, because `main`'s output fails the same way.
+- **Table total rows.** These could not be checked through hucre. Any custom `totalsRowFormula` hucre writes makes Excel ask for repair, on `main` as well, even `SUM(Table1[Qty])*2` with no newer function in it. A `sum` total opens cleanly but shows an empty total row, because hucre does not write the total row's cells. That is an existing problem with table totals, separate from this PR.
+
 ### Not verified
 
-I didn't open the output in Excel or LibreOffice; neither is available here. The prefixed forms match the spec table and XlsxWriter's output. I haven't confirmed in a real application that the five formulas from the issue now compute instead of showing `#NAME?`, and I haven't checked that a prefixed defined name or table total row behaves the same as one Excel saved.
+- **Table total rows**, as above.
+- **LibreOffice and Windows Excel.** Not opened.

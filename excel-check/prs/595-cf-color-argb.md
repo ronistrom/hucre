@@ -36,6 +36,11 @@ conditionalRules: [
 
 Tests: two of the three new tests fail against `main`, plus the corrected data bar assertion. The third new test checks that 8-digit colours pass through untouched, which already worked. `bun run test` passes on Node 24.22.0, with 240 files and 10,701 tests.
 
+### Checked in Excel
+
+In Excel for Mac, with the colour scale on A1:A10 and the data bars on B1:B10, written by `main` and by this branch. Both files open without a repair prompt. Both show A running red to green and blue bars in B. Excel accepts the six-digit form too, so there is no visible difference in Excel. The change makes the value schema-valid, and the after file shows Excel takes it.
+
 ### Not verified
 
-I did not open the output in Excel or LibreOffice. The change only makes the value schema-valid, and LibreOffice already accepted both forms according to the issue.
+- **LibreOffice.** Not opened. According to the issue it already accepted both forms.
+- **Windows Excel, and stricter readers.** Not checked.
