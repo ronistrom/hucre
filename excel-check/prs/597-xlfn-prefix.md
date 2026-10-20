@@ -1,4 +1,4 @@
-<!-- title: fix(xlsx): write newer functions with their _xlfn. prefix -->
+<!-- title: fix(xlsx): write newer functions with their _xlfn. prefix, and LET/LAMBDA names with _xlpm. -->
 
 Closes #597
 
@@ -55,9 +55,23 @@ The tests compared the writer's output with what they had passed in, so they che
   - The usual contents (`Sheet1!$A$1:$B$5`, print areas, quoted sheet names) have no call in them, so they pass through unchanged.
   - The table writer has no calculated-column formula, only `totalsRowFormula`, which gets the same treatment for the same reason.
 - Read-back changes. The reader keeps formula text as the file has it, so a formula written as `XLOOKUP(…)` now reads back as `_xlfn.XLOOKUP(…)`. It's the same formula, but a strict equality check on a round trip will see the difference. Writing the read-back text again does not prefix it twice. `docs/PARITY.md`, the `Cell.formula` doc and the `NamedRange.range` doc now say so.
-- Out of scope: `_xlpm.` on LET and LAMBDA parameter names. Adding it means knowing which names a `LET` binds, and a scan for `NAME(` can't tell that. PARITY.md says hucre writes those names as given. In Excel this matters more than it sounds: a LAMBDA or LET without `_xlpm.` is still removed on open (see "Checked in Excel").
+- **`_xlpm.` on the names LET and LAMBDA bind.** The issue suggested leaving this out. Checking in Excel showed it can't be left out: with only `_xlfn.`, Excel asks to repair the file and removes the LET formula and the named LAMBDA (see "Checked in Excel"). A bound name is stored with the prefix both where it is bound and everywhere it is used: `_xlfn.LET(_xlpm.x,2,_xlpm.x*3)`. Which names to prefix depends on scope, which a scan for `NAME(` can't see. So a formula that mentions LET or LAMBDA goes through a parse of its argument lists, and every other formula keeps the plain scan. Each rule matches what Excel 16.114 for Mac stored when the bare formula was typed in:
+  - A LET name is in scope from the next value onwards, not in its own value.
+  - LAMBDA parameters are in scope in the body only, so the arguments of a LAMBDA invoked on the spot, `LAMBDA(x,x*2)(x)`, stay bare.
+  - An optional `[b]` parameter is bound as `_xlop.b` and used as `_xlpm.b`.
+  - A LET-bound LAMBDA called by name is written `_xlpm.f(2)`.
+  - A use takes the spelling of its binding: `LET(Ab,2,aB)` is stored with `_xlpm.Ab` twice.
+  - Inside a scope that binds `a`, `A:A` becomes `_xlpm.a:_xlpm.a`, but `$A$1`, `A$1` and `$A1` stay cell references.
+  - Strings, quoted sheet names, sheet-qualified names, table references and already-prefixed text are left alone, so Excel's own stored form writes back unchanged.
 
-Tests: `test/formula-future-prefix.test.ts` adds 16 tests. 13 of them fail against `main`. The other three pass on `main` because they check what must not change: future functions the spec stores bare, already-prefixed formulas, and names that aren't calls. The three corrected assertions in `formulas-advanced.test.ts` fail against `main` too, which makes 16 failures in total. `bun run test` passes on Node 24.22.0, with 241 files and 10,714 tests.
+  PARITY.md and the `Cell.formula` / `NamedRange.range` docs now describe this instead of saying the names are written as given.
+
+Tests: `test/formula-future-prefix.test.ts` adds 23 tests.
+
+- **`_xlfn.` (16 tests).** 13 fail against `main`. The other three pass on `main` because they check what must not change: future functions the spec stores bare, already-prefixed formulas, and names that aren't calls. The three corrected assertions in `formulas-advanced.test.ts` fail against `main` too.
+- **`_xlpm.` (7 tests).** Six fail without the `_xlpm.` commit.
+
+`bun run test` passes, with 241 files and 10,721 tests.
 
 ### Checked in Excel
 
@@ -65,10 +79,10 @@ In Excel for Mac.
 
 - **The issue's five formulas.** The file `main` writes is worse than `#NAME?`. Excel asks to repair it, and its repair log says it removed formulas from `sheet1.xml`. After the repair, D1–D3 show `#NAME?`, and D4 and D5 (FILTER, SORT) are empty. This branch's file opens without a prompt and shows D1 `2`, D2 `small`, D3 `a,b,c`, D4 `b` and D5 `a`. FILTER and SORT show only their first value because no dynamic-array metadata is written; that is separate from this PR.
 - **Defined names.** Names holding `XLOOKUP(…)` and `TEXTJOIN(…)`, written by this branch, work: cells `=Lookup` and `=Joined` show `2` and `a,b,c`.
-- **LAMBDA and LET still fail, because of the missing `_xlpm.`.** I wrote a defined name `Double` as `LAMBDA(x,x*2)` and a cell `LET(x,2,x*3)`. This branch writes `_xlfn.LAMBDA(x,x*2)` and `_xlfn.LET(x,2,x*3)`. Excel asks to repair the file, removes the named range and the formula, and `=Double(B2)` shows `#NAME?`. The same file with `_xlpm.x` hand-edited into both opens cleanly and computes `2` and `6`. So the prefix this PR adds is necessary but not enough for a named LAMBDA or a LET: those need `_xlpm.` as well. That is a follow-up, not something this PR makes worse, because `main`'s output fails the same way.
-- **Table total rows.** These could not be checked through hucre. Any custom `totalsRowFormula` hucre writes makes Excel ask for repair, on `main` as well, even `SUM(Table1[Qty])*2` with no newer function in it. A `sum` total opens cleanly but shows an empty total row, because hucre does not write the total row's cells. That is an existing problem with table totals, separate from this PR.
+- **LAMBDA and LET needed `_xlpm.`, which is why it is in this PR.** I wrote a defined name `Double` as `LAMBDA(x,x*2)` and a cell `LET(x,2,x*3)`. With only `_xlfn.` (`_xlfn.LAMBDA(x,x*2)`, `_xlfn.LET(x,2,x*3)`), Excel asks to repair the file, removes the named range and the formula, and `=Double(B2)` shows `#NAME?`. `main`'s output fails the same way. The same file with `_xlpm.x` hand-edited in opens cleanly and computes `2` and `6`. With the `_xlpm.` commit, a file the branch writes also opens cleanly in Excel 16.114 for Mac, with every formula and defined name kept and the expected values. That file has a named LAMBDA, an optional parameter and a LET-bound call.
+- **Table total rows.** These could not be checked through this branch alone. Any custom `totalsRowFormula` hucre writes makes Excel ask for repair, on `main` as well, even `SUM(Table1[Qty])*2` with no newer function in it, because hucre does not write the total row's cells. That is #604, a separate bug. With #604's branch merged in, a custom `XLOOKUP` total row opens cleanly and shows `3`: the total-row cell gets `_xlfn.` from this PR's cell-formula pass, and `<totalsRowFormula>` from this PR's table-writer change.
 
 ### Not verified
 
-- **Table total rows**, as above.
+- **Table total rows on this branch alone**, as above: they need #604.
 - **LibreOffice and Windows Excel.** Not opened.
