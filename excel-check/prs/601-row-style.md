@@ -62,6 +62,13 @@ Tests: 14 of the new or extended tests fail against `main`:
 
 The three in `row-style.test.ts` that pass on `main` all check something that should *not* happen: no `customFormat` on a row without a style, a bare `s` being ignored, and no style without `readStyles`. `bun run test` passes on Node 24, with 241 files and 10,713 tests.
 
+After review, a second commit fixes two older gaps the row format made reachable:
+
+- **Rows past the data.** `writeXlsx` stopped at the last row of data, so a formatted row below it, or a sheet with only `rowDefs`, got no `<row>`. Those definitions are now written after the data, in row order.
+- **Rows without `r`.** `r` is optional on `<row>`. The reader read a row's height, hidden flag, outline level, collapsed flag and format from `r` alone, so a row without it lost all of them. It now uses the row's position, as it already did for the row's cells.
+
+Three of the four new tests fail without that commit. The coverage test that pinned the old drop now expects the flags kept. `bun run test` passes, with 241 files and 10,717 tests. `writeXlsxStream` still writes only the rows it is given.
+
 ### Checked in Excel
 
 In Excel for Mac. Formats were read from Excel itself, through its scripting interface, and checked against screenshots.
